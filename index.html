@@ -1,1 +1,129 @@
-Olá mundo!!!
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Controle de Horas</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    textarea { width: 100%; height: 200px; }
+    button { margin-top: 10px; padding: 10px; }
+    table { margin-top: 20px; border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { background: #f0f0f0; }
+    .negativo { color: red; }
+    .positivo { color: green; }
+  </style>
+</head>
+<body>
+
+<h2>Calculadora de Horas</h2>
+
+<textarea id="jsonInput">[
+  {
+    "id": "1",
+    "referenceDate": "2026-03-02T12:00:00Z",
+    "hour": 29940000
+  },
+  {
+    "id": "2",
+    "referenceDate": "2026-03-02T12:00:00Z",
+    "hour": 45240000
+  },
+  {
+    "id": "3",
+    "referenceDate": "2026-03-02T12:00:00Z",
+    "hour": 48900000
+  },
+  {
+    "id": "4",
+    "referenceDate": "2026-03-02T12:00:00Z",
+    "hour": 62400000
+  }
+]</textarea>
+
+<button onclick="calcular()">Calcular</button>
+
+<table id="resultado">
+  <thead>
+    <tr>
+      <th>Data</th>
+      <th>Batidas</th>
+      <th>Horas Trabalhadas</th>
+      <th>Saldo do Dia</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<h3 id="total"></h3>
+
+<script>
+function msParaHora(ms) {
+  const sinal = ms < 0 ? '-' : '';
+  ms = Math.abs(ms);
+
+  const totalMin = Math.floor(ms / 60000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+
+  return `${sinal}${h}h ${m}m`;
+}
+
+function msParaHoraRelogio(ms) {
+  const totalSeg = Math.floor(ms / 1000);
+  const h = Math.floor(totalSeg / 3600);
+  const m = Math.floor((totalSeg % 3600) / 60);
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+function calcular() {
+  const data = JSON.parse(document.getElementById('jsonInput').value);
+
+  const dias = {};
+
+  data.forEach(item => {
+    const dia = item.referenceDate.split('T')[0];
+
+    if (!dias[dia]) dias[dia] = [];
+    dias[dia].push(item.hour);
+  });
+
+  let totalSaldo = 0;
+  const tbody = document.querySelector('#resultado tbody');
+  tbody.innerHTML = '';
+
+  Object.keys(dias).forEach(dia => {
+    const registros = dias[dia].sort((a, b) => a - b);
+
+    let totalDia = 0;
+
+    for (let i = 0; i < registros.length; i += 2) {
+      if (registros[i + 1]) {
+        totalDia += (registros[i + 1] - registros[i]);
+      }
+    }
+
+    const carga = 8 * 60 * 60 * 1000;
+    const saldo = totalDia - carga;
+    totalSaldo += saldo;
+
+    const batidas = registros.map(msParaHoraRelogio).join(' | ');
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${dia}</td>
+      <td>${batidas}</td>
+      <td>${msParaHora(totalDia)}</td>
+      <td class="${saldo < 0 ? 'negativo' : 'positivo'}">${msParaHora(saldo)}</td>
+    `;
+
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('total').innerText = 
+    'Saldo Total: ' + msParaHora(totalSaldo);
+}
+</script>
+
+</body>
+</html>
